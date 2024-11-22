@@ -2,7 +2,7 @@ import logging
 import time
 import requests
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import InputMediaAudio, InputFile, BufferedInputFile
+from aiogram.types import InputMediaAudio, InputFile, BufferedInputFile, FSInputFile
 from aiogram.filters import Command
 from youtube_search import YoutubeSearch
 from sclib import SoundcloudAPI, Track, Playlist
@@ -162,6 +162,29 @@ async def send_welcome(message: types.Message):
     await message.reply("Hello! Send a track name or a direct SoundCloud/YouTube link to download a track.")
 
 
+async def save_and_send_file(message: types.Message):
+    try:
+        # Save user text to a file
+        user_text = message.text
+        file_path = "user_text.txt"
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(user_text)
+
+        # Send the file back to the user
+        await bot.send_document(
+            chat_id=message.chat.id,
+            document=InputFile(file_path),
+            caption="Here is the file with your text!"
+        )
+
+        # Optionally, delete the file after sending it
+        os.remove(file_path)
+
+    except Exception as e:
+        await message.reply(f"An error occurred: {str(e)}")
+
+
 # Message handler for links or track names
 @dp.message()
 async def handle_message(message: types.Message):
@@ -176,8 +199,24 @@ async def handle_message(message: types.Message):
     elif 'youtube.com' in text:  # YouTube link
         await message.reply("Processing YouTube link...")
         try:
-            file = await download_youtube_audio(text)
-            await bot.send_audio(message.chat.id, audio=file)
+            # file = await download_youtube_audio(text)
+            # Save user text to a file
+            user_text = message.text
+            file_path = "user_text.txt"
+
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(user_text)
+
+            # Send the file back to the user
+            await bot.send_document(
+                chat_id=message.chat.id,
+                document=FSInputFile(file_path),
+                caption="Here is the file with your text!"
+            )
+
+            # Optionally, delete the file after sending it
+            os.remove(file_path)
+            # await bot.send_audio(message.chat.id, audio=file)
         except Exception as e:
             await message.reply(f"Error: {str(e)}")
     else:  # Search for tracks
